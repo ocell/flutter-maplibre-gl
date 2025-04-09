@@ -609,7 +609,7 @@ final class MapLibreMapController
     return filterJsonElement.isJsonNull() ? null : Expression.Converter.convert(filterJsonElement);
   }
 
-  boolean guardAddLayerImpossible(MethodChannel.Result result, String sourceId, String layerId){
+  boolean guardAddLayerImpossible(MethodChannel.Result result, String sourceId, String layerId, String belowLayerId){
   if (style.getSource(sourceId) == null) {
       result.error(
           "SOURCE NOT FOUND",
@@ -621,6 +621,13 @@ final class MapLibreMapController
       result.error(
           "LAYER ALREADY EXISTS",
           "The layer with id " + layerId + " already exists.",
+          null);
+      return true;
+    }
+    if(style.getLayer(belowLayerId) == null && belowLayerId != null){
+      result.error(
+          "LAYER NOT FOUND",
+          "The layer with id " + belowLayerId + " does not exist.",
           null);
       return true;
     }
@@ -1040,7 +1047,7 @@ final class MapLibreMapController
               LayerPropertyConverter.interpretSymbolLayerProperties(call.argument("properties"));
 
           Expression filterExpression = parseFilter(filter);
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addSymbolLayer(
               layerId,
@@ -1072,7 +1079,7 @@ final class MapLibreMapController
 
           Expression filterExpression = parseFilter(filter);
 
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addLineLayer(
               layerId,
@@ -1143,7 +1150,7 @@ final class MapLibreMapController
               LayerPropertyConverter.interpretFillLayerProperties(call.argument("properties"));
 
           Expression filterExpression = parseFilter(filter);
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addFillLayer(
               layerId,
@@ -1175,7 +1182,7 @@ final class MapLibreMapController
                         call.argument("properties"));
 
         Expression filterExpression = parseFilter(filter);
-        if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+        if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
         addFillExtrusionLayer(
                 layerId,
@@ -1206,7 +1213,7 @@ final class MapLibreMapController
               LayerPropertyConverter.interpretCircleLayerProperties(call.argument("properties"));
 
           Expression filterExpression = parseFilter(filter);
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addCircleLayer(
               layerId,
@@ -1232,7 +1239,7 @@ final class MapLibreMapController
           final Double maxzoom = call.argument("maxzoom");
           final PropertyValue[] properties =
               LayerPropertyConverter.interpretRasterLayerProperties(call.argument("properties"));
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addRasterLayer(
               layerId,
@@ -1256,7 +1263,7 @@ final class MapLibreMapController
           final Double maxzoom = call.argument("maxzoom");
           final PropertyValue[] properties =
               LayerPropertyConverter.interpretHillshadeLayerProperties(call.argument("properties"));
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addHillshadeLayer(
               layerId,
@@ -1280,7 +1287,7 @@ final class MapLibreMapController
           final Double maxzoom = call.argument("maxzoom");
           final PropertyValue[] properties =
               LayerPropertyConverter.interpretHeatmapLayerProperties(call.argument("properties"));
-          if(guardAddLayerImpossible(result, sourceId, layerId)) break;
+          if(guardAddLayerImpossible(result, sourceId, layerId, belowLayerId)) break;
 
           addHeatmapLayer(
               layerId,
