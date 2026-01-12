@@ -14,7 +14,7 @@ class LocationEngineFactory {
     fun getLocationEngine(context: Context): LocationEngine {
         if (locationEngineRequest?.priority == LocationEngineRequest.PRIORITY_HIGH_ACCURACY) {
             return LocationEngineProxy(
-                MapLibreGPSLocationEngine(context)
+                GMSServicesLocationEngine(context)
             )
         }
         return getDefaultLocationEngine(context)
