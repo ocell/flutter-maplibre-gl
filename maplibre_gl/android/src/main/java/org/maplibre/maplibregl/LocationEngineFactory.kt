@@ -13,8 +13,10 @@ class LocationEngineFactory {
 
     fun getLocationEngine(context: Context): LocationEngine {
         if (locationEngineRequest?.priority == LocationEngineRequest.PRIORITY_HIGH_ACCURACY) {
+            // Use GMS (Google Mobile Services) FusedLocationProviderClient for high accuracy
+            // This provides better location accuracy on devices with Google Play Services
             return LocationEngineProxy(
-                MapLibreGPSLocationEngine(context)
+                GMSServicesLocationEngine(context)
             )
         }
         return getDefaultLocationEngine(context)

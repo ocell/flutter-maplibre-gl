@@ -1675,6 +1675,13 @@ class MapLibreMapController extends ChangeNotifier {
     return _maplibrePlatform.setLayerVisibility(layerId, visible);
   }
 
+  /// Returns the visibility of a layer.
+  /// Returns true if the layer is visible, false otherwise.
+  /// Returns null if the layer does not exist.
+  Future<bool?> getLayerVisibility(String layerId) {
+    return _maplibrePlatform.getLayerVisibility(layerId);
+  }
+
   Future<List> getLayerIds() {
     return _maplibrePlatform.getLayerIds();
   }
@@ -1686,6 +1693,13 @@ class MapLibreMapController extends ChangeNotifier {
     return (await _maplibrePlatform.getSourceIds())
         .whereType<String>()
         .toList();
+  }
+
+  /// Takes a snapshot of the map on web platform.
+  /// Returns a base64-encoded data URL of the map image.
+  /// On native platforms, this returns an empty string.
+  Future<String> takeWebSnapshot() {
+    return _maplibrePlatform.takeWebSnapshot();
   }
 
   /// Method to set style string

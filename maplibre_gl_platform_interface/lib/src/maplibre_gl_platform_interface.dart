@@ -234,6 +234,16 @@ abstract class MapLibrePlatform {
 
   Future<void> setLayerVisibility(String layerId, bool visible);
 
+  /// Returns the visibility of a layer.
+  /// Returns true if the layer is visible, false otherwise.
+  /// Returns null if the layer does not exist.
+  Future<bool?> getLayerVisibility(String layerId);
+
+  /// Takes a snapshot of the map on web platform.
+  /// Returns a base64-encoded data URL of the map image.
+  /// Note: Requires `preserveDrawingBuffer` to be handled properly for the snapshot to work.
+  Future<String> takeWebSnapshot();
+
   /// Method to set style string
   /// A MapLibre GL style document defining the map's appearance.
   /// The style document specification is at [https://maplibre.org/maplibre-style-spec].

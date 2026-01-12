@@ -1753,6 +1753,23 @@ final class MapLibreMapController
           break;
 
         }
+        case "layer#getVisibility":
+        {
+          if (guardStyleNotLoaded(result)) break;
+
+          Map<String, Object> reply = new HashMap<>();
+          String layerId = call.argument("layerId");
+          Layer layer = style.getLayer(layerId);
+
+          if (layer != null) {
+            String visibility = layer.getVisibility().getValue();
+            reply.put("visible", "visible".equals(visibility));
+          } else {
+            reply.put("visible", null);
+          }
+          result.success(reply);
+          break;
+        }
         case "map#querySourceFeatures":
         {
           Map<String, Object> reply = new HashMap<>();

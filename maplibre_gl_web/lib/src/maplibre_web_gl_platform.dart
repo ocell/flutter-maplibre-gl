@@ -22,6 +22,7 @@ class MapLibreMapController extends MapLibrePlatform
   String? _navigationControlPosition;
   NavigationControl? _navigationControl;
   AttributionControl? _attributionControl;
+  ScaleControl? _scaleControl;
   Timer? lastResizeObserverTimer;
 
   @override
@@ -62,6 +63,11 @@ class MapLibreMapController extends MapLibrePlatform
     final styleString = _sanitizeStyleObject(_creationParams['styleString']);
     _dragEnabled = _creationParams['dragEnabled'] ?? true;
 
+    // Extract min/max zoom preferences if provided
+    final minMaxZoom = _creationParams['minMaxZoomPreference'] as List<dynamic>?;
+    final minZoom = minMaxZoom?[0] as num?;
+    final maxZoom = minMaxZoom?[1] as num?;
+
     _map = MapLibreMap(
       MapOptions(
         container: _mapElement,
@@ -74,6 +80,8 @@ class MapLibreMapController extends MapLibrePlatform
         style: styleString,
         preserveDrawingBuffer: _creationParams['webPreserveDrawingBuffer'],
         attributionControl: false, //avoid duplicate control
+        minZoom: minZoom,
+        maxZoom: maxZoom,
       ),
     );
     _map.on('style.load', _onStyleLoaded);
@@ -91,6 +99,7 @@ class MapLibreMapController extends MapLibrePlatform
     }
 
     _initResizeObserver();
+    _initScaleControl();
 
     final options = _creationParams['options'] ?? {};
     Convert.interpretMapLibreMapOptions(options, this, ignoreStyle: true);
@@ -732,6 +741,17 @@ class MapLibreMapController extends MapLibrePlatform
     }
   }
 
+  /// Initialize the scale control to display the ratio of map distance to ground distance.
+  void _initScaleControl() {
+    _scaleControl = ScaleControl(
+      ScaleControlOptions(
+        maxWidth: 80,
+        unit: 'metric',
+      ),
+    );
+    _map.addControl(_scaleControl, 'bottom-right');
+  }
+
   void _updateAttributionButton(
     AttributionButtonPosition position,
   ) {
@@ -1363,6 +1383,13 @@ class MapLibreMapController extends MapLibrePlatform
   }
 
   @override
+  Future<bool?> getLayerVisibility(String layerId) async {
+    final visibility = _map.getLayoutProperty(layerId, 'visibility');
+    if (visibility == null) return null;
+    return visibility == 'visible';
+  }
+
+  @override
   Future getFilter(String layerId) async {
     return _map.getFilter(layerId);
   }
@@ -1384,5 +1411,20 @@ class MapLibreMapController extends MapLibrePlatform
 
     // Get the keys (source IDs) from the sources object
     return objectKeys(jsSources);
+  }
+
+  @override
+  Future<String> takeWebSnapshot() async {
+    // "preserveDrawingBuffer" is set to false in the WebGL context by default for best performance,
+    // therefore we cannot directly use canvas.toDataURL() because it would return a blank image.
+    // Instead, we trigger a repaint and capture the image data during the render event.
+    final completer = Completer<String>();
+    _map.once('render', (_) {
+      final canvas = _map.getCanvas();
+      final dataUrl = canvas.toDataUrl();
+      completer.complete(dataUrl);
+    });
+    _map.triggerRepaint();
+    return completer.future;
   }
 }
