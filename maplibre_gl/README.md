@@ -376,6 +376,93 @@ Please read the full [CONTRIBUTING.md](./CONTRIBUTING.md) before submitting a PR
 
 ---
 
+## Custom Features (ocell Fork)
+
+This fork extends the official MapLibre Flutter plugin with additional features
+not available in the upstream repository. These custom features are built on top
+of the official 0.25.0 release.
+
+### 1. Google Mobile Services (GMS) Location Engine (Android)
+
+Uses Google Play Services' `FusedLocationProviderClient` for high-accuracy
+location tracking instead of the standard Android `LocationManager`.
+
+**Benefits**:
+- More accurate and battery-efficient location updates
+- Better performance with Google Play Services
+
+**Usage**: Automatically activated when using `LocationEngineRequest.PRIORITY_HIGH_ACCURACY`.
+
+---
+
+### 2. Scale Control (Web)
+
+Displays a scale indicator showing the ratio of map distance to ground distance.
+
+**Usage**: Automatically added to web maps in the bottom-right corner.
+
+---
+
+### 3. Web Screenshot Capture
+
+Take screenshots of the map on web platform.
+
+```dart
+final controller = await mapController.future;
+final base64Image = await controller.takeWebSnapshot();
+// Returns a base64-encoded PNG image
+```
+
+---
+
+### 4. Get Layer Visibility
+
+Query the visibility state of a layer at runtime.
+
+```dart
+final controller = await mapController.future;
+final isVisible = await controller.getLayerVisibility('my-layer-id');
+// Returns true if visible, false if hidden, null if layer not found
+```
+
+---
+
+### 5. Custom Web Map Sizing
+
+Set the web map to a specific custom size for rendering fixed-dimension map images.
+
+```dart
+final controller = await mapController.future;
+final actualSize = await controller.setWebMapToCustomSize(Size(800, 600));
+```
+
+---
+
+### 6. Wait Until Map Tiles Are Loaded
+
+Wait for all visible map tiles to finish loading before proceeding.
+
+```dart
+final controller = await mapController.future;
+await controller.waitUntilMapTilesAreLoaded();
+// All visible tiles are now loaded
+```
+
+---
+
+### 7. Wait Until Map Is Idle After Movement
+
+Wait for the map to become idle after camera movement completes.
+
+```dart
+final controller = await mapController.future;
+await controller.animateCamera(...);
+await controller.waitUntilMapIsIdleAfterMovement();
+// Map is now idle and stable
+```
+
+---
+
 ## Getting Help
 * Join our [Slack](https://slack.openstreetmap.us/) channel
 * StackOverflow tag: [#maplibre](https://stackoverflow.com/questions/tagged/maplibre)
