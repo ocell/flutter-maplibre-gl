@@ -76,6 +76,66 @@ This project is a fork of [flutter-mapbox-gl](https://github.com/tobrun/flutter-
 
 ---
 
+## Custom Fork Features
+
+> ⚠️ **Note**: This is a custom fork of the official [MapLibre Flutter GL](https://github.com/maplibre/flutter-maplibre-gl) package with additional features not available in the upstream release.
+
+This fork is based on **v0.25.0** and adds the following custom features:
+
+| Feature | Platform | Description |
+|---------|----------|-------------|
+| **GMS Location Engine** | Android | Uses Google Play Services `FusedLocationProviderClient` for higher accuracy GPS positioning instead of the default Android `LocationManager`. Automatically used when requesting `PRIORITY_HIGH_ACCURACY`. |
+| **`getLayerVisibility()`** | All | Query whether a specific layer is currently visible on the map. Complements the existing `setLayerVisibility()` method. |
+| **`takeWebSnapshot()`** | Web | Capture a screenshot of the map and return it as a base64-encoded data URL. Useful for generating map images for sharing or export. |
+| **Scale Control** | Web | Displays the ratio of map distance to ground distance (metric by default). Shown in the bottom-right corner. |
+| **Min/Max Zoom** | Web | Properly extracts and applies `minMaxZoomPreference` from creation params when initializing web maps. |
+
+### Files Modified/Added for Custom Features
+
+```
+maplibre_gl/android/src/main/java/org/maplibre/maplibregl/
+├── GMSServicesLocationEngine.java    # NEW: GMS-based location engine
+├── LocationEngineFactory.kt          # Modified: Uses GMS for high accuracy
+├── MapLibreMapController.java        # Modified: Added layer#getVisibility
+
+maplibre_gl/ios/maplibre_gl/Sources/maplibre_gl/
+├── MapLibreMapController.swift       # Modified: Added layer#getVisibility
+
+maplibre_gl/lib/src/
+├── controller.dart                   # Modified: Added getLayerVisibility(), takeWebSnapshot()
+
+maplibre_gl_platform_interface/lib/src/
+├── maplibre_gl_platform_interface.dart  # Modified: Added method signatures
+├── method_channel_maplibre_gl.dart      # Modified: Added method channel calls
+
+maplibre_gl_web/lib/src/
+├── maplibre_web_gl_platform.dart     # Modified: Web implementations
+├── interop/ui/control/scale_control_interop.dart  # NEW: JS interop
+├── ui/control/scale_control.dart     # NEW: Dart wrapper
+```
+
+### Usage Examples
+
+```dart
+// Check if a layer is visible
+final isVisible = await controller.getLayerVisibility('my-layer-id');
+
+// Take a screenshot on web
+final dataUrl = await controller.takeWebSnapshot();
+// dataUrl is a base64 string like "data:image/png;base64,..."
+```
+
+### Keeping Up with Upstream
+
+To update this fork with new upstream releases:
+
+1. Fetch upstream: `git fetch upstream`
+2. Create a new branch from upstream: `git checkout -b update-vX.XX upstream/main`
+3. Cherry-pick or re-apply the custom features commit
+4. Resolve any conflicts with new API changes
+
+---
+
 ## Why MapLibre?
 
 MapLibre is a **vendor-neutral, open source** set of mapping libraries born from the community. Using MapLibre helps you:
