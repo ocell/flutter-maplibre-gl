@@ -2,6 +2,7 @@
 library;
 
 import 'dart:js_interop';
+
 import 'package:maplibre_gl_web/src/interop/ui/map_interop.dart';
 
 /// JS interop class for the ScaleControl options.

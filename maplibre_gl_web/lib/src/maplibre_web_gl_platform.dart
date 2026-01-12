@@ -64,7 +64,8 @@ class MapLibreMapController extends MapLibrePlatform
     _dragEnabled = _creationParams['dragEnabled'] ?? true;
 
     // Extract min/max zoom preferences if provided
-    final minMaxZoom = _creationParams['minMaxZoomPreference'] as List<dynamic>?;
+    final minMaxZoom =
+        _creationParams['minMaxZoomPreference'] as List<dynamic>?;
     final minZoom = minMaxZoom?[0] as num?;
     final maxZoom = minMaxZoom?[1] as num?;
 
