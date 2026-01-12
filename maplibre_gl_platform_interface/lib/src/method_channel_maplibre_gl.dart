@@ -904,7 +904,7 @@ class MapLibreMethodChannel extends MapLibrePlatform {
 
   @override
   Future<bool?> getLayerVisibility(String layerId) async {
-    final Map<dynamic, dynamic>? reply =
+    final reply =
         await _channel.invokeMethod('layer#getVisibility', <String, dynamic>{
       'layerId': layerId,
     });
