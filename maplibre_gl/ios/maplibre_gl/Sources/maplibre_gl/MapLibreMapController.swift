@@ -1,6 +1,14 @@
 import Flutter
 import MapLibre
 
+/// Holds a pending camera update to be executed when the map view has a valid frame size
+private struct PendingCameraUpdate {
+    let cameraUpdate: [Any]
+    let duration: TimeInterval?
+    let animated: Bool  // true for camera#animate, false for camera#move
+    let result: FlutterResult
+}
+
 class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, MapLibreMapOptionsSink,
     UIGestureRecognizerDelegate
 {
@@ -16,6 +24,11 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
     private var previousDragCoordinate: CLLocationCoordinate2D?
     private var originDragCoordinate: CLLocationCoordinate2D?
     private var dragFeature: MLNFeature?
+    
+    /// Queue of camera updates waiting for the map view to have a valid frame size
+    private var pendingCameraUpdates: [PendingCameraUpdate] = []
+    /// KVO observation for frame changes
+    private var frameObservation: NSKeyValueObservation?
 
     private var initialTilt: CGFloat?
     private var trackCameraPosition = false
@@ -32,6 +45,65 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
 
     private var styleIsReady: Bool {
         return onStyleLoadedCalled && mapView.style != nil
+    }
+    
+    /// Returns true if the map view has a valid frame size for camera calculations
+    private var hasValidFrameSize: Bool {
+        return mapView.frame.size.width > 0 && mapView.frame.size.height > 0
+    }
+    
+    /// Process any pending camera updates if the frame is now valid
+    private func processPendingCameraUpdatesIfReady() {
+        guard hasValidFrameSize else { return }
+        guard !pendingCameraUpdates.isEmpty else { return }
+        
+        // Take all pending updates and clear the queue
+        let updates = pendingCameraUpdates
+        pendingCameraUpdates.removeAll()
+        
+        for pending in updates {
+            executeCameraUpdate(
+                cameraUpdate: pending.cameraUpdate,
+                duration: pending.duration,
+                animated: pending.animated,
+                result: pending.result
+            )
+        }
+    }
+    
+    /// Execute a camera update immediately
+    /// - Parameters:
+    ///   - cameraUpdate: The camera update data from Flutter
+    ///   - duration: Optional fly animation duration in milliseconds
+    ///   - animated: If true, uses animated camera transition; if false, sets camera immediately
+    ///   - result: Flutter result callback
+    private func executeCameraUpdate(cameraUpdate: [Any], duration: TimeInterval?, animated: Bool, result: @escaping FlutterResult) {
+        guard let camera = Convert.parseCameraUpdate(cameraUpdate: cameraUpdate, mapView: mapView) else {
+            result(nil)
+            return
+        }
+        
+        let completion = {
+            result(nil)
+        }
+        
+        if let duration = duration {
+            // Fly animation with specific duration
+            if let padding = Convert.parseLatLngBoundsPadding(cameraUpdate) {
+                mapView.fly(to: camera, edgePadding: padding, withDuration: duration / 1000, completionHandler: completion)
+            } else {
+                mapView.fly(to: camera, withDuration: duration / 1000, completionHandler: completion)
+            }
+        } else {
+            // Set camera with or without animation
+            mapView.setCamera(camera, animated: animated)
+            completion()
+        }
+    }
+    
+    deinit {
+        frameObservation?.invalidate()
+        frameObservation = nil
     }
 
     private static func createMapView(
@@ -90,6 +162,11 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
             .setMethodCallHandler { [weak self] in self?.onMethodCall(methodCall: $0, result: $1) }
 
         mapView.delegate = self
+        
+        // Observe frame changes to process pending camera updates when frame becomes valid
+        frameObservation = mapView.observe(\.frame, options: [.new]) { [weak self] _, _ in
+            self?.processPendingCameraUpdatesIfReady()
+        }
 
         let singleTap = UITapGestureRecognizer(
             target: self,
@@ -478,6 +555,17 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
             guard let cameraUpdate = arguments["cameraUpdate"] as? [Any] else { return }
 
+            // If the map view doesn't have a valid frame yet, queue the camera update
+            if !hasValidFrameSize {
+                pendingCameraUpdates.append(PendingCameraUpdate(
+                    cameraUpdate: cameraUpdate,
+                    duration: nil,
+                    animated: false,  // camera#move is never animated
+                    result: result
+                ))
+                return
+            }
+            
             if let camera = Convert.parseCameraUpdate(cameraUpdate: cameraUpdate, mapView: mapView) {
                 mapView.setCamera(camera, animated: false)
             }
@@ -485,23 +573,21 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
         case "camera#animate":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
             guard let cameraUpdate = arguments["cameraUpdate"] as? [Any] else { return }
-            guard let camera = Convert.parseCameraUpdate(cameraUpdate: cameraUpdate, mapView: mapView) else { return }
-
-
-            let completion = {
-                result(nil)
+            let duration = arguments["duration"] as? TimeInterval
+            
+            // If the map view doesn't have a valid frame yet, queue the camera update
+            // This prevents crashes when MLNAltitudeForZoomLevel is called with zero frame size
+            if !hasValidFrameSize {
+                pendingCameraUpdates.append(PendingCameraUpdate(
+                    cameraUpdate: cameraUpdate,
+                    duration: duration,
+                    animated: true,  // camera#animate is always animated
+                    result: result
+                ))
+                return
             }
-
-            if let duration = arguments["duration"] as? TimeInterval {
-                if let padding = Convert.parseLatLngBoundsPadding(cameraUpdate) {
-                    mapView.fly(to: camera, edgePadding: padding, withDuration: duration / 1000, completionHandler: completion)
-                } else {
-                    mapView.fly(to: camera, withDuration: duration / 1000, completionHandler: completion)
-                }
-            } else {
-                mapView.setCamera(camera, animated: true)
-                completion()
-            }
+            
+            executeCameraUpdate(cameraUpdate: cameraUpdate, duration: duration, animated: true, result: result)
         case "symbolLayer#add":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
             guard let sourceId = arguments["sourceId"] as? String else { return }
