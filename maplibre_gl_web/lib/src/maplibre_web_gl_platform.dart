@@ -122,11 +122,14 @@ class MapLibreMapController extends MapLibrePlatform
   }
 
   void _onMouseDown(Event e, String? layerId) {
-    final isDraggable = e.features[0].properties['draggable'];
+    // Check if there are features under the mouse cursor
+    if (e.features.isEmpty) return;
+
+    final isDraggable = e.features.first.getProperty('draggable');
     if (isDraggable != null && isDraggable) {
       // Prevent the default map drag behavior.
       e.preventDefault();
-      _draggedFeatureId = e.features[0].id;
+      _draggedFeatureId = e.features.first.id;
       _map.getCanvas().style.cursor = 'grabbing';
       final coords = e.lngLat;
       _dragOrigin = LatLng(coords.lat as double, coords.lng as double);
@@ -382,9 +385,11 @@ class MapLibreMapController extends MapLibrePlatform
     }
 
     // avoid issues with the js point type
-    final pointAsList = [point.x, point.y];
+    final geometry = jsify([point.x, point.y]);
+    if (geometry == null) return [];
+
     return _map
-        .queryRenderedFeatures([pointAsList, pointAsList], options)
+        .queryRenderedFeatures(geometry, options)
         .map((feature) => <String, dynamic>{
               'type': 'Feature',
               'id': feature.id,
@@ -416,11 +421,14 @@ class MapLibreMapController extends MapLibrePlatform
     if (filter != null) {
       options['filter'] = filter;
     }
+
+    final geometry = jsify([
+      [rect.left, rect.bottom],
+      [rect.right, rect.top],
+    ]);
+    if (geometry == null) return [];
     return _map
-        .queryRenderedFeatures([
-          [rect.left, rect.bottom],
-          [rect.right, rect.top],
-        ], options)
+        .queryRenderedFeatures(geometry, options)
         .map((feature) => <String, dynamic>{
               'type': 'Feature',
               'id': feature.id,
@@ -574,13 +582,13 @@ class MapLibreMapController extends MapLibrePlatform
   ///
   /// Both events include the click point and latLng.
   void _onMapClick(Event e) {
-    final pointBox = [
+    final geometry = jsify([
       [e.point.x, e.point.y],
       [e.point.x, e.point.y]
-    ];
-
+    ]);
+    if (geometry == null) return;
     // Query rendered features in the point box
-    final features = _map.queryRenderedFeatures(pointBox);
+    final features = _map.queryRenderedFeatures(geometry);
 
     // Keep only interactive-layer features (preserve order)
     final filtered = features
@@ -886,12 +894,13 @@ class MapLibreMapController extends MapLibrePlatform
   }
 
   /// Sanitizes the style object to ensure it is in the correct format.
-  /// If the style object is a JSON string, it decodes it into a Map.
-  /// If it is already a Map or other type, it returns it as is.
+  /// If the style object is a JSON string, use JavaScript's native JSON.parse
+  /// to avoid Dart object metadata leaking into web workers.
   dynamic _sanitizeStyleObject(dynamic styleObject) {
     if (styleObject is String &&
         (styleObject.startsWith('{') || styleObject.startsWith('['))) {
-      return jsonDecode(styleObject);
+      // Use JavaScript's native JSON.parse to create pure JS objects
+      return jsonParse(styleObject);
     } else {
       return styleObject;
     }
@@ -1369,20 +1378,13 @@ class MapLibreMapController extends MapLibrePlatform
 
   @override
   Future<List> getLayerIds() async {
-    return _map.getLayers().map((e) => e.id).toList();
+    final layers = _map.getLayers();
+    return layers.map((layer) => layer.id).toList();
   }
 
   @override
   Future<List> getSourceIds() async {
-    final style = _map.getStyle();
-    if (style == null) return [];
-
-    // Get the sources from the style object
-    final jsSources = style.sources;
-
-    if (jsSources == null) return [];
-
-    // Get the keys (source IDs) from the sources object
-    return objectKeys(jsSources);
+    final sourceIds = _map.getSourceIds();
+    return sourceIds;
   }
 }
