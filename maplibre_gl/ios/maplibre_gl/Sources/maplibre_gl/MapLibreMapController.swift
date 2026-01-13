@@ -25,8 +25,9 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
     private var originDragCoordinate: CLLocationCoordinate2D?
     private var dragFeature: MLNFeature?
     
-    /// Queue of camera updates waiting for the map view to have a valid frame size
-    private var pendingCameraUpdates: [PendingCameraUpdate] = []
+    /// Pending camera update waiting for the map view to have a valid frame size.
+    /// Only the most recent update is kept - earlier ones are completed immediately.
+    private var pendingCameraUpdate: PendingCameraUpdate?
     /// KVO observation for frame changes
     private var frameObservation: NSKeyValueObservation?
 
@@ -52,23 +53,20 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
         return mapView.frame.size.width > 0 && mapView.frame.size.height > 0
     }
     
-    /// Process any pending camera updates if the frame is now valid
+    /// Process the pending camera update if the frame is now valid
     private func processPendingCameraUpdatesIfReady() {
         guard hasValidFrameSize else { return }
-        guard !pendingCameraUpdates.isEmpty else { return }
+        guard let pending = pendingCameraUpdate else { return }
         
-        // Take all pending updates and clear the queue
-        let updates = pendingCameraUpdates
-        pendingCameraUpdates.removeAll()
+        // Clear the pending update before executing
+        pendingCameraUpdate = nil
         
-        for pending in updates {
-            executeCameraUpdate(
-                cameraUpdate: pending.cameraUpdate,
-                duration: pending.duration,
-                animated: pending.animated,
-                result: pending.result
-            )
-        }
+        executeCameraUpdate(
+            cameraUpdate: pending.cameraUpdate,
+            duration: pending.duration,
+            animated: pending.animated,
+            result: pending.result
+        )
     }
     
     /// Execute a camera update immediately
@@ -555,14 +553,16 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
             guard let cameraUpdate = arguments["cameraUpdate"] as? [Any] else { return }
 
-            // If the map view doesn't have a valid frame yet, queue the camera update
+            // If the map view doesn't have a valid frame yet, defer the camera update
             if !hasValidFrameSize {
-                pendingCameraUpdates.append(PendingCameraUpdate(
+                // Complete any existing pending update immediately (superseded by this one)
+                pendingCameraUpdate?.result(nil)
+                pendingCameraUpdate = PendingCameraUpdate(
                     cameraUpdate: cameraUpdate,
                     duration: nil,
                     animated: false,  // camera#move is never animated
                     result: result
-                ))
+                )
                 return
             }
             
@@ -575,15 +575,17 @@ class MapLibreMapController: NSObject, FlutterPlatformView, MLNMapViewDelegate, 
             guard let cameraUpdate = arguments["cameraUpdate"] as? [Any] else { return }
             let duration = arguments["duration"] as? TimeInterval
             
-            // If the map view doesn't have a valid frame yet, queue the camera update
+            // If the map view doesn't have a valid frame yet, defer the camera update
             // This prevents crashes when MLNAltitudeForZoomLevel is called with zero frame size
             if !hasValidFrameSize {
-                pendingCameraUpdates.append(PendingCameraUpdate(
+                // Complete any existing pending update immediately (superseded by this one)
+                pendingCameraUpdate?.result(nil)
+                pendingCameraUpdate = PendingCameraUpdate(
                     cameraUpdate: cameraUpdate,
                     duration: duration,
                     animated: true,  // camera#animate is always animated
                     result: result
-                ))
+                )
                 return
             }
             
