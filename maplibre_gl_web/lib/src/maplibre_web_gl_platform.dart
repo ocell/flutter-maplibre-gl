@@ -1440,7 +1440,7 @@ class MapLibreMapController extends MapLibrePlatform
     final completer = Completer<String>();
     _map.once('render', (_) {
       final canvas = _map.getCanvas();
-      final dataUrl = canvas.toDataUrl();
+      final dataUrl = canvas.toDataUrl('image/png');
       completer.complete(dataUrl);
     });
     _map.triggerRepaint();
