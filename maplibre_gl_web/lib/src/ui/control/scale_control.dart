@@ -30,9 +30,11 @@ class ScaleControlOptions extends JsObjectWrapper<ScaleControlOptionsJsImpl> {
 /// Displays the ratio of a distance on the map to the corresponding distance
 /// on the ground. You can change units dynamically via [setUnit].
 class ScaleControl extends JsObjectWrapper<ScaleControlJsImpl> {
-  /// Access to the underlying JS options.
-  ScaleControlOptions get options =>
-      ScaleControlOptions.fromJsObject(jsObject.options);
+  /// Access to the underlying JS options, or null if created with defaults.
+  ScaleControlOptions? get options {
+    final opts = jsObject.options;
+    return opts != null ? ScaleControlOptions.fromJsObject(opts) : null;
+  }
 
   /// Creates a new ScaleControl with the given [options].
   factory ScaleControl(ScaleControlOptions options) {

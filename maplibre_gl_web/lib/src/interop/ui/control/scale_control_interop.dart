@@ -2,6 +2,7 @@
 library;
 
 import 'dart:js_interop';
+
 import 'package:maplibre_gl_web/src/interop/ui/map_interop.dart';
 
 /// JS interop class for the ScaleControl options.
@@ -25,11 +26,11 @@ extension type ScaleControlOptionsJsImpl._(JSObject _) implements JSObject {
 @JS('ScaleControl')
 @staticInterop
 class ScaleControlJsImpl {
-  external factory ScaleControlJsImpl(ScaleControlOptionsJsImpl options);
+  external factory ScaleControlJsImpl([ScaleControlOptionsJsImpl? options]);
 }
 
 extension ScaleControlJsImplExtension on ScaleControlJsImpl {
-  external ScaleControlOptionsJsImpl get options;
+  external ScaleControlOptionsJsImpl? get options;
   external JSAny? onAdd(MapLibreMapJsImpl map);
   external void onRemove();
   external String getDefaultPosition();
