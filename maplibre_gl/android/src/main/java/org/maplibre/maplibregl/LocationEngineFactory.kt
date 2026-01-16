@@ -26,7 +26,7 @@ class LocationEngineFactory {
     fun getLocationEngine(context: Context): LocationEngine {
         if (locationEngineRequest?.priority == LocationEngineRequest.PRIORITY_HIGH_ACCURACY) {
             val locationEngineImpl = if (isGooglePlayServicesAvailable(context)) {
-                GMSServicesLocationEngine(context)
+                GMSLocationEngine(context)
             } else {
                 MapLibreGPSLocationEngine(context)
             }

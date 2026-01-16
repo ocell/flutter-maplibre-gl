@@ -27,11 +27,11 @@ import org.maplibre.android.location.engine.LocationEngineResult;
 /**
  * A MapLibre LocationEngine implementation using Google Play Services.
  */
-public class GMSServicesLocationEngine implements LocationEngineImpl<LocationCallback> {
+public class GMSLocationEngine implements LocationEngineImpl<LocationCallback> {
     private static final String TAG = "GMSLocationEngine";
     private final FusedLocationProviderClient fusedLocationProviderClient;
 
-    public GMSServicesLocationEngine(@NonNull Context context) {
+    public GMSLocationEngine(@NonNull Context context) {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context);
     }
 
