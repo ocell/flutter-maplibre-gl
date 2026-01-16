@@ -239,7 +239,7 @@ abstract class MapLibrePlatform {
   Future<bool?> getLayerVisibility(String layerId);
 
   /// Sets the web map to a custom size for rendering.
-  /// Returns the actual size that was set.
+  /// Returns the previous/initial size of the web map before this change.
   Future<Size> setWebMapToCustomSize(Size size);
 
   /// Waits until the map is idle after camera movement.

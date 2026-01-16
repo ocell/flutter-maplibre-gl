@@ -1392,8 +1392,8 @@ class MapLibreMapController extends MapLibrePlatform
   Future<bool?> getLayerVisibility(String layerId) async {
     final property = _map.getLayoutProperty(layerId, 'visibility');
     if (property == null) return true;
-    if (property is String) return property == "visible";
-    return false;
+    if (property is String) return property != 'none';
+    return true;
   }
 
   @override
@@ -1405,14 +1405,22 @@ class MapLibreMapController extends MapLibrePlatform
 
   @override
   Future<void> waitUntilMapTilesAreLoaded() async {
-    final tilesLoadedCompleter = Completer<void>();
     if (_map.areTilesLoaded()) {
-      tilesLoadedCompleter.complete();
-    } else {
-      _map.once('sourcedata', (_) {
-        tilesLoadedCompleter.complete();
-      });
+      return;
     }
+
+    final tilesLoadedCompleter = Completer<void>();
+    late void Function(dynamic) listener;
+    listener = (_) {
+      if (_map.areTilesLoaded()) {
+        _map.off('sourcedata', listener);
+        if (!tilesLoadedCompleter.isCompleted) {
+          tilesLoadedCompleter.complete();
+        }
+      }
+    };
+    _map.on('sourcedata', listener);
+
     await tilesLoadedCompleter.future;
   }
 
@@ -1433,7 +1441,7 @@ class MapLibreMapController extends MapLibrePlatform
 
   @override
   Future<String> takeWebSnapshot() async {
-    // "preserveDrawingBuffer" is set to false in the the WebGL context to get the best possible performance,
+    // "preserveDrawingBuffer" is set to false in the WebGL context to get the best possible performance,
     // therefore we cannot directly use the canvas.toDataURL() method to get a snapshot of the map because it would be blank then.
     // That's the reason why we trigger a repaint and then directly catch the image data from the canvas during the rendering.
 

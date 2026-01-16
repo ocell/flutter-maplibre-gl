@@ -1695,7 +1695,7 @@ class MapLibreMapController extends ChangeNotifier {
   }
 
   /// Sets the web map to a custom size for rendering.
-  /// Returns the actual size that was set.
+  /// Returns the previous size before this change was applied.
   /// Useful for generating fixed-dimension map images.
   Future<Size> setWebMapToCustomSize(Size size) {
     return _maplibrePlatform.setWebMapToCustomSize(size);
